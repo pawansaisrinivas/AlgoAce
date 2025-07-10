@@ -1,3 +1,4 @@
+// components/code-display.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -55,7 +56,7 @@ export function CodeDisplay({ code, language, isLoading }: CodeDisplayProps) {
                 <Skeleton className="h-5 w-5/6 rounded-sm" />
               </div>
             ) : code ? (
-              <pre className="text-sm">
+              <pre className="text-sm overflow-auto md:text-base"> {/* MODIFIED LINE: Added overflow-auto and responsive text sizes */}
                 <code className={`language-${language} font-code`}>{code}</code>
               </pre>
             ) : (
