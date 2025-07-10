@@ -61,6 +61,14 @@ export default function Home() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        toast({
+          variant: 'destructive',
+          title: 'Image too large',
+          description: 'Please upload an image smaller than 4MB.',
+        })
+        return
+      }
       const reader = new FileReader()
       reader.onloadend = () => {
         const dataUri = reader.result as string
@@ -101,13 +109,13 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-secondary/50 dark:bg-background">
+    <div className="flex flex-col min-h-screen bg-background dark:bg-zinc-950">
       <Header />
-      <main className="flex-1 container mx-auto p-4 sm:p-6 md:p-8">
-        <div className="grid md:grid-cols-2 gap-8 items-start">
-          <Card className="sticky top-20">
+      <main className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="grid lg:grid-cols-2 lg:gap-8 items-start">
+          <Card className="lg:sticky lg:top-24 mb-8 lg:mb-0">
             <CardHeader>
-              <CardTitle className="text-xl font-headline">
+              <CardTitle className="text-2xl font-headline tracking-tight">
                 Problem Definition
               </CardTitle>
             </CardHeader>
@@ -131,7 +139,7 @@ export default function Home() {
                                 alt="Problem preview"
                                 width={500}
                                 height={300}
-                                className="w-full h-auto rounded-md border"
+                                className="w-full h-auto max-h-[300px] object-contain rounded-md border bg-muted"
                               />
                               <Button
                                 type="button"
@@ -144,13 +152,13 @@ export default function Home() {
                               </Button>
                             </div>
                           ) : (
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted">
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
                                 <p className="mb-1 text-sm text-muted-foreground">
                                   <span className="font-semibold">Click to upload</span> or drag and drop
                                 </p>
-                                <p className="text-xs text-muted-foreground">PNG, JPG, or GIF</p>
+                                <p className="text-xs text-muted-foreground">PNG, JPG, GIF (MAX. 4MB)</p>
                               </div>
                               <Input
                                 id="image-upload"
@@ -236,6 +244,7 @@ export default function Home() {
                             <SelectItem value="python">Python</SelectItem>
                             <SelectItem value="java">Java</SelectItem>
                             <SelectItem value="cpp">C++</SelectItem>
+                            <SelectItem value="javascript">JavaScript</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -244,7 +253,8 @@ export default function Home() {
                   />
                   <Button
                     type="submit"
-                    className="w-full text-lg py-6"
+                    className="w-full text-base py-6"
+                    size="lg"
                     disabled={isLoading}
                   >
                     {isLoading ? (
