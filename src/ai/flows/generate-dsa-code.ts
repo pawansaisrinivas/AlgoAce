@@ -35,22 +35,28 @@ const generateDSACodePrompt = ai.definePrompt({
   name: 'generateDSACodePrompt',
   input: {schema: GenerateDSACodeInputSchema},
   output: {schema: GenerateDSACodeOutputSchema},
-  prompt: `You are an expert software engineer specializing in data structures and algorithms.
+  prompt: `You are an expert competitive programmer and software engineer specializing in data structures and algorithms. Your task is to generate a correct and efficient solution for the given problem.
 
-  You will generate code that solves the following problem, taking into account the constraints and example inputs/outputs. The solution must work for hidden test cases.
+Follow these steps carefully:
+1.  **Analyze the Request**: Thoroughly understand the problem description, constraints, and examples.
+2.  **Choose the Right Approach**: Select the most appropriate data structures and algorithms to solve the problem efficiently, keeping the constraints in mind.
+3.  **Think Step-by-Step**: Before writing any code, outline the logic for your solution.
+4.  **Generate the Code**: Write clean, readable, and well-structured code in the specified language. The solution must be self-contained in a single code block.
+5.  **Verify the Solution**: Mentally trace the provided examples through your code to ensure it produces the correct output. Your solution MUST work for the given examples and edge cases based on the constraints.
 
-  Problem Description: {{{problemDescription}}}
-  Constraints: {{{constraints}}}
-  Example Inputs/Outputs: {{{exampleInputsOutputs}}}
+**Problem Details:**
 
-  Programming Language: {{{language}}}
+*   **Problem Description**: {{{problemDescription}}}
+*   **Constraints**: {{{constraints}}}
+*   **Examples**: {{{exampleInputsOutputs}}}
+*   **Programming Language**: {{{language}}}
 
-  Ensure the generated code is efficient, well-documented, and follows best practices.
-  The code should be fully functional and directly runnable.
-  Do not include any explanation, comments, or test code outside of the required code block.
-  In the generated response include only the code block. Start the code block with the language name.
+**Instructions for Output:**
+*   Provide only the final, complete, and runnable code block.
+*   Do not include any explanations, comments, or test cases outside of the main solution.
+*   The code should be a single, self-contained block starting with the language identifier (e.g., \`\`\`python).
 
-  Here is the code:
+Here is the code:
   `,
 });
 
