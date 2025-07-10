@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Bot, Loader2 } from 'lucide-react'
+import { Bot, Loader2, UploadCloud, X } from 'lucide-react'
+import Image from 'next/image'
 
 import { Header } from '@/components/header'
+import { Footer } from '@/components/footer'
 import { CodeDisplay } from '@/components/code-display'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -32,15 +35,17 @@ import { generateCodeAction } from '@/lib/actions'
 const formSchema = z.object({
   problemDescription: z
     .string()
-    .min(50, 'Please provide a detailed problem description (min 50 characters).'),
+    .min(10, 'Please provide a detailed problem description (min 10 characters).'),
   constraints: z.string().optional(),
   exampleInputsOutputs: z.string().optional(),
   language: z.string({ required_error: 'Please select a language.' }),
+  photoDataUri: z.string().optional(),
 })
 
 export default function Home() {
   const [generatedCode, setGeneratedCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -52,6 +57,26 @@ export default function Home() {
       language: 'python',
     },
   })
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const dataUri = reader.result as string
+        setImagePreview(dataUri)
+        form.setValue('photoDataUri', dataUri)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setImagePreview(null)
+    form.setValue('photoDataUri', undefined)
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement
+    if(fileInput) fileInput.value = ''
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
@@ -92,6 +117,55 @@ export default function Home() {
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-6"
                 >
+                  <FormField
+                    control={form.control}
+                    name="photoDataUri"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Problem Image (Optional)</FormLabel>
+                        <FormControl>
+                          {imagePreview ? (
+                            <div className="relative">
+                              <Image
+                                src={imagePreview}
+                                alt="Problem preview"
+                                width={500}
+                                height={300}
+                                className="w-full h-auto rounded-md border"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 h-7 w-7"
+                                onClick={removeImage}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted">
+                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
+                                <p className="mb-1 text-sm text-muted-foreground">
+                                  <span className="font-semibold">Click to upload</span> or drag and drop
+                                </p>
+                                <p className="text-xs text-muted-foreground">PNG, JPG, or GIF</p>
+                              </div>
+                              <Input
+                                id="image-upload"
+                                type="file"
+                                className="hidden"
+                                accept="image/png, image/jpeg, image/gif"
+                                onChange={handleImageChange}
+                              />
+                            </label>
+                          )}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="problemDescription"
@@ -191,6 +265,7 @@ export default function Home() {
           />
         </div>
       </main>
+      <Footer />
     </div>
   )
 }
