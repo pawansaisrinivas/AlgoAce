@@ -109,8 +109,6 @@ export default function Home() {
     isRegeneration: boolean = false,
   ) => {
     setLoadingState(true);
-    // On regeneration, we only update the explanation.
-    // On initial generation, we clear both.
     if (!isRegeneration) {
       setGeneratedCode('');
     }
@@ -120,7 +118,6 @@ export default function Home() {
     
     let actionValues;
     if (isRegeneration) {
-        // Ensure that for regeneration, userCode and errorReport are provided
         if (!values.userCode) {
             toast({
                 variant: 'destructive',
@@ -166,13 +163,13 @@ export default function Home() {
     }
   };
   
-  const onSubmit = () => {
-    // Reset debug fields for a clean generation request
-    form.setValue('userCode', '');
-    form.setValue('errorReport', '');
-    handleGeneration(generateCodeAction, setIsLoading);
+  const onGenerateSubmit = (values: z.infer<typeof formSchema>) => {
+    handleGeneration(generateCodeAction, setIsLoading, false);
   };
-  const onRegenerate = () => handleGeneration(regenerateCodeAction, setIsRegenerating, true);
+
+  const onRegenerateSubmit = (values: z.infer<typeof formSchema>) => {
+    handleGeneration(regenerateCodeAction, setIsRegenerating, true);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background dark:bg-zinc-950">
@@ -190,7 +187,7 @@ export default function Home() {
               <CardContent>
                 <Form {...form}>
                   <form
-                    onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+                    onSubmit={form.handleSubmit(onGenerateSubmit)}
                     className="space-y-6"
                   >
                     <FormField
@@ -346,7 +343,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={(e) => { e.preventDefault(); onRegenerate(); }} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(onRegenerateSubmit)} className="space-y-4">
                     <FormField
                         control={form.control}
                         name="userCode"
