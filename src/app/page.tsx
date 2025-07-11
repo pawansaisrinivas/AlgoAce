@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Bot, Loader2, UploadCloud, X } from 'lucide-react'
+import { Bot, Loader2, UploadCloud, X, Sparkles, AlertCircle, MessageSquareQuote, Bug } from 'lucide-react'
 import Image from 'next/image'
 
 import { Header } from '@/components/header'
@@ -30,7 +30,8 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { generateCodeAction } from '@/lib/actions'
+import { generateCodeAction, regenerateCodeAction } from '@/lib/actions'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const formSchema = z.object({
   problemDescription: z
@@ -40,11 +41,16 @@ const formSchema = z.object({
   exampleInputsOutputs: z.string().optional(),
   language: z.string({ required_error: 'Please select a language.' }),
   photoDataUri: z.string().optional(),
+  // Fields for regeneration/debugging
+  userCode: z.string().optional(),
+  errorReport: z.string().optional(),
 })
 
 export default function Home() {
   const [generatedCode, setGeneratedCode] = useState('')
+  const [explanation, setExplanation] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isRegenerating, setIsRegenerating] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const { toast } = useToast()
 
@@ -55,8 +61,19 @@ export default function Home() {
       constraints: '',
       exampleInputsOutputs: '',
       language: 'python',
+      userCode: '',
+      errorReport: '',
     },
   })
+
+  // Set the userCode field whenever generatedCode changes
+  // so it can be used in the debugging form
+  useState(() => {
+    if (generatedCode) {
+      form.setValue('userCode', generatedCode);
+    }
+  });
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -86,27 +103,46 @@ export default function Home() {
     if(fileInput) fileInput.value = ''
   }
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    setGeneratedCode('')
-    const result = await generateCodeAction(values)
-    setIsLoading(false)
+  const handleGeneration = async (
+    action: (values: any) => Promise<any>, 
+    setLoadingState: (loading: boolean) => void,
+    isRegeneration: boolean = false,
+  ) => {
+    setLoadingState(true);
+    if (!isRegeneration) {
+      setGeneratedCode('');
+    }
+    setExplanation('');
+  
+    const values = form.getValues();
+    const actionValues = isRegeneration 
+      ? { ...values, previousCode: values.userCode }
+      : values;
 
+    const result = await action(actionValues);
+  
+    setLoadingState(false);
+  
     if (result.error) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: result.error,
-      })
+      });
     } else if (result.data) {
-      const cleanedCode = result.data.code.replace(/^```(?:\w+)?\n/, '').replace(/```$/, '')
-      setGeneratedCode(cleanedCode)
+      const cleanedCode = result.data.code.replace(/^```(?:\w+)?\n/, '').replace(/```$/, '');
+      setGeneratedCode(cleanedCode);
+      setExplanation(result.data.explanation);
+      form.setValue('userCode', cleanedCode); // Update userCode field with the new code
       toast({
         title: 'Success!',
-        description: 'Your code has been generated.',
-      })
+        description: isRegeneration ? 'Your code has been debugged.' : 'Your code has been generated.',
+      });
     }
-  }
+  };
+  
+  const onSubmit = () => handleGeneration(generateCodeAction, setIsLoading);
+  const onRegenerate = () => handleGeneration(regenerateCodeAction, setIsRegenerating, true);
 
   return (
     <div className="flex flex-col min-h-screen bg-background dark:bg-zinc-950">
@@ -122,7 +158,7 @@ export default function Home() {
             <CardContent>
               <Form {...form}>
                 <form
-                  onSubmit={form.handleSubmit(onSubmit)}
+                  onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
                   className="space-y-6"
                 >
                   <FormField
@@ -255,7 +291,7 @@ export default function Home() {
                     type="submit"
                     className="w-full text-base py-6"
                     size="lg"
-                    disabled={isLoading}
+                    disabled={isLoading || isRegenerating}
                   >
                     {isLoading ? (
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -268,11 +304,88 @@ export default function Home() {
               </Form>
             </CardContent>
           </Card>
-          <CodeDisplay
-            code={generatedCode}
-            language={form.watch('language')}
-            isLoading={isLoading}
-          />
+          <div className="space-y-8">
+            <CodeDisplay
+              code={generatedCode}
+              language={form.watch('language')}
+              isLoading={isLoading || isRegenerating}
+            />
+            {explanation && !isRegenerating && (
+              <Alert>
+                  <MessageSquareQuote className="h-4 w-4" />
+                  <AlertTitle>Explanation</AlertTitle>
+                  <AlertDescription>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      {explanation.split('\n').map((line, i) => (
+                        <p key={i}>{line}</p>
+                      ))}
+                    </div>
+                  </AlertDescription>
+              </Alert>
+            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl font-headline tracking-tight">
+                  <Bug className="h-6 w-6 text-amber-500" />
+                  Debug Code
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={(e) => { e.preventDefault(); onRegenerate(); }} className="space-y-4">
+                    <FormField
+                        control={form.control}
+                        name="userCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Code to Debug</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Paste your code here. If you just generated code above, it's already been added."
+                                {...field}
+                                rows={8}
+                                className="font-code text-xs"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    <FormField
+                      control={form.control}
+                      name="errorReport"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Describe the issue</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="e.g., 'The code fails on edge cases with negative numbers.' or 'It's too slow and times out.'"
+                              {...field}
+                              rows={3}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      className="w-full text-base py-6"
+                      size="lg"
+                      disabled={isRegenerating || isLoading}
+                    >
+                      {isRegenerating ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-2 h-5 w-5" />
+                      )}
+                      Debug & Correct
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
       <Footer />
