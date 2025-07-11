@@ -52,7 +52,7 @@ Follow these steps carefully:
 1.  **Analyze the Request**: Thoroughly understand the problem description, constraints, and examples from BOTH the text and the image if provided. The image is the primary source if there's a conflict.
 2.  **Choose the Right Approach**: Select the most appropriate data structures and algorithms to solve the problem efficiently, keeping the constraints in mind.
 3.  **Think Step-by-Step**: Before writing any code, outline the logic for your solution.
-4.  **Generate the Code**: Write clean, readable, and well-structured code in the specified language. The solution must be self-contained in a single code block and use only DSA concepts.
+4.  **Generate the Code**: Write clean, readable, and well-structured code in the specified language. The solution must be self-contained in a single code block and use only standard libraries.
 5.  **Verify and Explain**:
     *   Mentally trace the provided examples through your code to ensure it produces the correct output. Your solution MUST work for the given examples and edge cases based on the constraints.
     *   Provide a clear explanation of your approach and why it's correct.
