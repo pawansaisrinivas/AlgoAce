@@ -109,15 +109,40 @@ export default function Home() {
     isRegeneration: boolean = false,
   ) => {
     setLoadingState(true);
+    // On regeneration, we only update the explanation.
+    // On initial generation, we clear both.
     if (!isRegeneration) {
       setGeneratedCode('');
     }
     setExplanation('');
   
     const values = form.getValues();
-    const actionValues = isRegeneration 
-      ? { ...values, previousCode: values.userCode }
-      : values;
+    
+    let actionValues;
+    if (isRegeneration) {
+        // Ensure that for regeneration, userCode and errorReport are provided
+        if (!values.userCode) {
+            toast({
+                variant: 'destructive',
+                title: 'Missing Code',
+                description: 'Please provide the code you want to debug.',
+            });
+            setLoadingState(false);
+            return;
+        }
+        if (!values.errorReport) {
+            toast({
+                variant: 'destructive',
+                title: 'Missing Error Description',
+                description: 'Please describe the issue with the code.',
+            });
+            setLoadingState(false);
+            return;
+        }
+        actionValues = { ...values, previousCode: values.userCode };
+    } else {
+        actionValues = values;
+    }
 
     const result = await action(actionValues);
   
@@ -141,7 +166,12 @@ export default function Home() {
     }
   };
   
-  const onSubmit = () => handleGeneration(generateCodeAction, setIsLoading);
+  const onSubmit = () => {
+    // Reset debug fields for a clean generation request
+    form.setValue('userCode', '');
+    form.setValue('errorReport', '');
+    handleGeneration(generateCodeAction, setIsLoading);
+  };
   const onRegenerate = () => handleGeneration(regenerateCodeAction, setIsRegenerating, true);
 
   return (
@@ -149,166 +179,234 @@ export default function Home() {
       <Header />
       <main className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid lg:grid-cols-2 lg:gap-8 items-start">
-          <Card className="lg:sticky lg:top-24 mb-8 lg:mb-0">
-            <CardHeader>
-              <CardTitle className="text-2xl font-headline tracking-tight">
-                Problem Definition
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form
-                  onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
-                  className="space-y-6"
-                >
-                  <FormField
-                    control={form.control}
-                    name="photoDataUri"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel>Problem Image (Optional)</FormLabel>
-                        <FormControl>
-                          {imagePreview ? (
-                            <div className="relative">
-                              <Image
-                                src={imagePreview}
-                                alt="Problem preview"
-                                width={500}
-                                height={300}
-                                className="w-full h-auto max-h-[300px] object-contain rounded-md border bg-muted"
-                              />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 h-7 w-7"
-                                onClick={removeImage}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
-                                <p className="mb-1 text-sm text-muted-foreground">
-                                  <span className="font-semibold">Click to upload</span> or drag and drop
-                                </p>
-                                <p className="text-xs text-muted-foreground">PNG, JPG, GIF (MAX. 4MB)</p>
-                              </div>
-                              <Input
-                                id="image-upload"
-                                type="file"
-                                className="hidden"
-                                accept="image/png, image/jpeg, image/gif"
-                                onChange={handleImageChange}
-                              />
-                            </label>
-                          )}
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="problemDescription"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Problem Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="e.g., Given an array of integers, return indices of the two numbers such that they add up to a specific target."
-                            {...field}
-                            rows={6}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="constraints"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Constraints (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="e.g., 2 <= nums.length <= 10^4"
-                            {...field}
-                            rows={3}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="exampleInputsOutputs"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Examples (to verify against)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="e.g., Input: nums = [2,7,11,15], target = 9 Output: [0,1]"
-                            {...field}
-                            rows={3}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="language"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Language</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a language" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="python">Python</SelectItem>
-                            <SelectItem value="java">Java</SelectItem>
-                            <SelectItem value="cpp">C++</SelectItem>
-                            <SelectItem value="javascript">JavaScript</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full text-base py-6"
-                    size="lg"
-                    disabled={isLoading || isRegenerating}
+          {/* Column 1: Input Forms */}
+          <div className="flex flex-col gap-8">
+            <Card className="flex-1">
+              <CardHeader>
+                <CardTitle className="text-2xl font-headline tracking-tight">
+                  Problem Definition
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+                    className="space-y-6"
                   >
-                    {isLoading ? (
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    ) : (
-                      <Bot className="mr-2 h-5 w-5" />
-                    )}
-                    Generate Code
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-          <div className="space-y-8">
+                    <FormField
+                      control={form.control}
+                      name="photoDataUri"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel>Problem Image (Optional)</FormLabel>
+                          <FormControl>
+                            {imagePreview ? (
+                              <div className="relative">
+                                <Image
+                                  src={imagePreview}
+                                  alt="Problem preview"
+                                  width={500}
+                                  height={300}
+                                  className="w-full h-auto max-h-[300px] object-contain rounded-md border bg-muted"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute top-2 right-2 h-7 w-7"
+                                  onClick={removeImage}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                  <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
+                                  <p className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">PNG, JPG, GIF (MAX. 4MB)</p>
+                                </div>
+                                <Input
+                                  id="image-upload"
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/png, image/jpeg, image/gif"
+                                  onChange={handleImageChange}
+                                />
+                              </label>
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="problemDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Problem Description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="e.g., Given an array of integers, return indices of the two numbers such that they add up to a specific target."
+                              {...field}
+                              rows={6}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="constraints"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Constraints (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="e.g., 2 <= nums.length <= 10^4"
+                              {...field}
+                              rows={3}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="exampleInputsOutputs"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Examples (to verify against)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="e.g., Input: nums = [2,7,11,15], target = 9 Output: [0,1]"
+                              {...field}
+                              rows={3}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="language"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Language</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a language" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="python">Python</SelectItem>
+                              <SelectItem value="java">Java</SelectItem>
+                              <SelectItem value="cpp">C++</SelectItem>
+                              <SelectItem value="javascript">JavaScript</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      className="w-full text-base py-6"
+                      size="lg"
+                      disabled={isLoading || isRegenerating}
+                    >
+                      {isLoading && !isRegenerating ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <Bot className="mr-2 h-5 w-5" />
+                      )}
+                      Generate Code
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl font-headline tracking-tight">
+                  <Bug className="h-6 w-6 text-amber-500" />
+                  Have Code? Debug It.
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={(e) => { e.preventDefault(); onRegenerate(); }} className="space-y-4">
+                    <FormField
+                        control={form.control}
+                        name="userCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Code to Debug</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Paste your code here. If you just generated code above, it will appear here automatically."
+                                {...field}
+                                rows={8}
+                                className="font-code text-xs"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    <FormField
+                      control={form.control}
+                      name="errorReport"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Describe the issue</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="e.g., 'The code fails on edge cases with negative numbers.' or 'It's too slow and times out.'"
+                              {...field}
+                              rows={3}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      className="w-full text-base py-6"
+                      size="lg"
+                      disabled={isRegenerating || isLoading}
+                    >
+                      {isRegenerating ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-2 h-5 w-5" />
+                      )}
+                      Debug & Correct
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Column 2: Output */}
+          <div className="space-y-8 lg:sticky lg:top-24">
             <CodeDisplay
               code={generatedCode}
               language={form.watch('language')}
-              isLoading={isLoading || isRegenerating}
+              isLoading={isLoading}
             />
             {explanation && (
                 <Alert variant={isRegenerating ? "default" : "default"}>
@@ -333,69 +431,22 @@ export default function Home() {
                     </div>
                 </Alert>
             )}
-            {generatedCode && !isLoading && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl font-headline tracking-tight">
-                    <Bug className="h-6 w-6 text-amber-500" />
-                    Not Quite Right? Debug It.
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Form {...form}>
-                    <form onSubmit={(e) => { e.preventDefault(); onRegenerate(); }} className="space-y-4">
-                      <FormField
-                          control={form.control}
-                          name="userCode"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Code to Debug</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Paste your code here. If you just generated code above, it's already been added."
-                                  {...field}
-                                  rows={8}
-                                  className="font-code text-xs"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      <FormField
-                        control={form.control}
-                        name="errorReport"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Describe the issue</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="e.g., 'The code fails on edge cases with negative numbers.' or 'It's too slow and times out.'"
-                                {...field}
-                                rows={3}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="submit"
-                        className="w-full text-base py-6"
-                        size="lg"
-                        disabled={isRegenerating || isLoading}
-                      >
-                        {isRegenerating ? (
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        ) : (
-                          <Sparkles className="mr-2 h-5 w-5" />
-                        )}
-                        Debug & Correct
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
+             {(isLoading || isRegenerating) && !explanation && (
+                <Alert>
+                    <div className="flex items-start">
+                        <MessageSquareQuote className="h-5 w-5 mr-3 text-blue-500 flex-shrink-0 mt-0.5 animate-pulse" />
+                        <div className="flex-1">
+                            <AlertTitle className="font-bold text-lg mb-2">Generating Explanation...</AlertTitle>
+                            <AlertDescription>
+                                <div className="space-y-2">
+                                    <div className="h-4 bg-muted rounded-full w-4/5 animate-pulse"></div>
+                                    <div className="h-4 bg-muted rounded-full w-full animate-pulse"></div>
+                                    <div className="h-4 bg-muted rounded-full w-3/4 animate-pulse"></div>
+                                </div>
+                            </AlertDescription>
+                        </div>
+                    </div>
+                </Alert>
             )}
           </div>
         </div>
