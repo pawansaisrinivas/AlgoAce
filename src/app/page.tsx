@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Bot, Loader2, UploadCloud, X, Sparkles, AlertCircle, MessageSquareQuote, Bug } from 'lucide-react'
+import { Bot, Loader2, UploadCloud, X, Sparkles, MessageSquareQuote, Bug, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
 
 import { Header } from '@/components/header'
@@ -68,11 +68,11 @@ export default function Home() {
 
   // Set the userCode field whenever generatedCode changes
   // so it can be used in the debugging form
-  useState(() => {
+  useEffect(() => {
     if (generatedCode) {
       form.setValue('userCode', generatedCode);
     }
-  });
+  }, [generatedCode, form]);
 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,7 +249,7 @@ export default function Home() {
                     name="exampleInputsOutputs"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Examples (Optional)</FormLabel>
+                        <FormLabel>Examples (to verify against)</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="e.g., Input: nums = [2,7,11,15], target = 9 Output: [0,1]"
@@ -310,81 +310,93 @@ export default function Home() {
               language={form.watch('language')}
               isLoading={isLoading || isRegenerating}
             />
-            {explanation && !isRegenerating && (
-              <Alert>
-                  <MessageSquareQuote className="h-4 w-4" />
-                  <AlertTitle>Explanation</AlertTitle>
-                  <AlertDescription>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      {explanation.split('\n').map((line, i) => (
-                        <p key={i}>{line}</p>
-                      ))}
+            {explanation && (
+                <Alert variant={isRegenerating ? "default" : "default"}>
+                    <div className="flex items-start">
+                        {isRegenerating ? (
+                            <CheckCircle2 className="h-5 w-5 mr-3 text-green-500 flex-shrink-0 mt-0.5" />
+                        ) : (
+                            <MessageSquareQuote className="h-5 w-5 mr-3 text-blue-500 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                            <AlertTitle className="font-bold text-lg mb-2">
+                                {isRegenerating ? 'Code Corrected & Verified' : 'AI Explanation & Verification'}
+                            </AlertTitle>
+                            <AlertDescription>
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                    {explanation.split('\n').map((line, i) => (
+                                        <p key={i} className="mb-2 last:mb-0">{line}</p>
+                                    ))}
+                                </div>
+                            </AlertDescription>
+                        </div>
                     </div>
-                  </AlertDescription>
-              </Alert>
+                </Alert>
             )}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl font-headline tracking-tight">
-                  <Bug className="h-6 w-6 text-amber-500" />
-                  Debug Code
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={(e) => { e.preventDefault(); onRegenerate(); }} className="space-y-4">
-                    <FormField
+            {generatedCode && !isLoading && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-xl font-headline tracking-tight">
+                    <Bug className="h-6 w-6 text-amber-500" />
+                    Not Quite Right? Debug It.
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={(e) => { e.preventDefault(); onRegenerate(); }} className="space-y-4">
+                      <FormField
+                          control={form.control}
+                          name="userCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Code to Debug</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Paste your code here. If you just generated code above, it's already been added."
+                                  {...field}
+                                  rows={8}
+                                  className="font-code text-xs"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      <FormField
                         control={form.control}
-                        name="userCode"
+                        name="errorReport"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Code to Debug</FormLabel>
+                            <FormLabel>Describe the issue</FormLabel>
                             <FormControl>
                               <Textarea
-                                placeholder="Paste your code here. If you just generated code above, it's already been added."
+                                placeholder="e.g., 'The code fails on edge cases with negative numbers.' or 'It's too slow and times out.'"
                                 {...field}
-                                rows={8}
-                                className="font-code text-xs"
+                                rows={3}
                               />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    <FormField
-                      control={form.control}
-                      name="errorReport"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Describe the issue</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="e.g., 'The code fails on edge cases with negative numbers.' or 'It's too slow and times out.'"
-                              {...field}
-                              rows={3}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="submit"
-                      className="w-full text-base py-6"
-                      size="lg"
-                      disabled={isRegenerating || isLoading}
-                    >
-                      {isRegenerating ? (
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      ) : (
-                        <Sparkles className="mr-2 h-5 w-5" />
-                      )}
-                      Debug & Correct
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+                      <Button
+                        type="submit"
+                        className="w-full text-base py-6"
+                        size="lg"
+                        disabled={isRegenerating || isLoading}
+                      >
+                        {isRegenerating ? (
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 h-5 w-5" />
+                        )}
+                        Debug & Correct
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>
