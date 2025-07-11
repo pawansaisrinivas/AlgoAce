@@ -32,7 +32,9 @@ export type GenerateDSACodeInput = z.infer<typeof GenerateDSACodeInputSchema>;
 
 const GenerateDSACodeOutputSchema = z.object({
   code: z.string().describe('The generated code for the DSA problem.'),
-  explanation: z.string().describe('An explanation of why the code is correct.'),
+  explanation: z.string().describe(
+    'An explanation of why the code is correct, including a step-by-step analysis of how it passes the provided examples.'
+  ),
 });
 export type GenerateDSACodeOutput = z.infer<typeof GenerateDSACodeOutputSchema>;
 
@@ -51,7 +53,10 @@ Follow these steps carefully:
 2.  **Choose the Right Approach**: Select the most appropriate data structures and algorithms to solve the problem efficiently, keeping the constraints in mind.
 3.  **Think Step-by-Step**: Before writing any code, outline the logic for your solution.
 4.  **Generate the Code**: Write clean, readable, and well-structured code in the specified language. The solution must be self-contained in a single code block and use only DSA concepts.
-5.  **Verify and Explain**: Mentally trace the provided examples through your code to ensure it produces the correct output. Your solution MUST work for the given examples and edge cases based on the constraints. Provide a brief explanation of your approach and why it's correct.
+5.  **Verify and Explain**:
+    *   Mentally trace the provided examples through your code to ensure it produces the correct output. Your solution MUST work for the given examples and edge cases based on the constraints.
+    *   Provide a clear explanation of your approach and why it's correct.
+    *   **Crucially, in your explanation, provide a section that explicitly confirms that your code passes the user-provided examples. If no examples are given, state that.**
 
 **Problem Details:**
 
@@ -66,7 +71,7 @@ Follow these steps carefully:
 
 **Instructions for Output:**
 *   Provide the final, complete, and runnable code block.
-*   Provide a concise explanation of the code's logic and how it passes the provided examples.
+*   Provide a concise explanation of the code's logic and how it passes the provided examples. The explanation should be detailed enough to show your thought process on verification.
 *   The code should be a single, self-contained block starting with the language identifier (e.g., \`\`\`python).
 
 Here is the response:
@@ -127,11 +132,12 @@ const regenerateDSACodePrompt = ai.definePrompt({
 3.  **Generate Corrected Code**: Write a new, clean, and fully functional version of the code that resolves the reported issue.
 4.  **Verify and Explain**:
     *   Confirm that your new solution correctly handles the examples provided in the original problem.
-    *   Write a clear explanation detailing what was wrong with the previous code and how your new code fixes the issue and passes the test cases.
+    *   Write a clear explanation detailing what was wrong with the previous code and how your new code fixes the issue.
+    *   **Crucially, in your explanation, provide a section that explicitly confirms that your corrected code now passes the user-provided examples.**
 
 **Instructions for Output:**
 *   Provide only the final, complete, and runnable corrected code block.
-*   Provide a concise explanation of the fix and how it now works correctly with the examples.
+*   Provide a concise explanation of the fix and how it now works correctly with the examples. The explanation should be detailed enough to show your thought process on verification.
 *   The code should be a single, self-contained block.
 
 Here is the corrected response:
@@ -149,4 +155,3 @@ const regenerateDSACodeFlow = ai.defineFlow(
         return output!;
     }
 );
-
