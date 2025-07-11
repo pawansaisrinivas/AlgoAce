@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Copy, Check, Terminal } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ export function CodeDisplay({ code, language, isLoading }: CodeDisplayProps) {
   }
 
   return (
-    <Card className="min-h-[400px] lg:min-h-[calc(100vh-10rem)] flex flex-col">
+    <Card className="min-h-[400px] flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-2xl font-headline tracking-tight">Generated Code</CardTitle>
         {code && !isLoading && (
